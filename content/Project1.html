@@ -171,22 +171,22 @@ final &lt;- final %&gt;% na.omit %&gt;% as.data.frame</code></pre>
 <pre class="r"><code>final %&gt;% ggplot(aes(x=State, y=avg_divorce_rate, color=region))+
   geom_point(size=2)+
   theme(axis.text.x = element_text(angle = 50, hjust = 1))</code></pre>
-<p><img src="/nisharamdeep/website2.gitProject1_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
 <p><em>Divorce rates per state were given. They were grouped by region. There doesn’t appear to be any correlation between the region and the average divorce rate. Although, the Western states have some of the highest, and the Midwestern states have some of the lowest.</em></p>
 <pre class="r"><code>final %&gt;% group_by(region) %&gt;% mutate(poverty_rate_region=mean(poverty_percent)) %&gt;%
   ggplot(aes(region))+
   geom_bar(aes(y=avg_divorce_rate,fill=poverty_rate_region),stat=&quot;summary&quot;,fun.y=&quot;mean&quot;)+
   theme(axis.text.x = element_text(angle = 45,hjust = 1))</code></pre>
-<p><img src="/nisharamdeep/website2.gitProject1_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
 <p><em>This shows that there isn’t a relationship between the poverty rate and the divorce rate. The region with the lowest poverty rate (Northeast) does not have the lowest divorce rate.</em></p>
 <pre class="r"><code>final %&gt;% ggplot(aes(x=Non_white, y=poverty_percent,color=region))+
   geom_point(size=2)</code></pre>
-<p><img src="/nisharamdeep/website2.gitProject1_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
 <p><em>The states with the highest amount of diversity, while up there, do not necessarily have the highest amount of poverty. Similarly, states with less diversity do not seem to have lower amounts of poverty. The South, again, seems to struggle with higher poverty rates, while the Northeast is generally low.</em></p>
 <pre class="r"><code>final %&gt;% ggplot(aes(x=region,y=avg_income))+
   geom_boxplot()+
   geom_jitter(alpha=.5, aes(color=White))</code></pre>
-<p><img src="/nisharamdeep/website2.gitProject1_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
 <p><em>In this plot, the median incomes of the states in each region were plotted to show their distribution. Layered on top of that was the percentage of White people was layered on top. There does not seem to be a relationship between the percentage of White people in the state and the median income of the region.</em></p>
 <pre class="r"><code>centers &lt;- final %&gt;%
   mutate(cluster=sample(c(&quot;1&quot;,&quot;2&quot;,&quot;3&quot;),41,replace=T)) %&gt;%
@@ -196,7 +196,7 @@ final &lt;- final %&gt;% na.omit %&gt;% as.data.frame</code></pre>
 ggplot(final)+geom_point(aes(poverty_percent, avg_divorce_rate))+
   geom_point(data=centers,aes(poverty_percent,avg_divorce_rate,fill=&quot;&quot;),color=&quot;black&quot;,size=4)+
   scale_fill_manual(name=&quot;cluster&quot;,values = &quot;black&quot;)</code></pre>
-<p><img src="/nisharamdeep/website2.gitProject1_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
 <pre class="r"><code>suppressWarnings(expr= for(i in 1:1000){
 iter&lt;-final%&gt;%mutate(dist1=sqrt((poverty_percent-centers$poverty_percent[1])^2+(avg_divorce_rate-centers$avg_divorce_rate[1])^2),
               dist2=sqrt((poverty_percent-centers$poverty_percent[2])^2+(avg_divorce_rate-centers$avg_divorce_rate[2])^2),
@@ -208,25 +208,25 @@ centers&lt;-iter%&gt;%group_by(cluster)%&gt;%summarize(poverty_percent=mean(pove
 })
 ggplot(iter)+geom_point(aes(poverty_percent,avg_divorce_rate,color=cluster))+
   geom_point(data=centers,aes(poverty_percent,avg_divorce_rate),color=&quot;black&quot;,size=4)</code></pre>
-<p><img src="/nisharamdeep/website2.gitProject1_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
 <pre class="r"><code>clust_dat &lt;- final%&gt;%select(poverty_percent, avg_divorce_rate)
 kmeans1&lt;-clust_dat%&gt;%kmeans(3)
 kmeans1</code></pre>
-<pre><code>## K-means clustering with 3 clusters of sizes 23, 15, 3
+<pre><code>## K-means clustering with 3 clusters of sizes 9, 22, 10
 ## 
 ## Cluster means:
 ##   poverty_percent avg_divorce_rate
-## 1        10.31304         2.988631
-## 2        13.74000         3.167429
-## 3        17.93333         3.463398
+## 1        15.97778         3.304734
+## 2        11.95000         3.155807
+## 3         9.04000         2.746979
 ## 
 ## Clustering vector:
-##  [1] 3 1 2 2 1 1 2 2 1 1 1 2 2 2 1 1 1 3 1 1 1 1 1 2 2 1 2 1 1 1 2 2 2 2 1 1 1 1
-## [39] 3 1 2
+##  [1] 1 2 1 1 3 2 1 2 2 2 3 2 1 2 3 3 2 1 2 3 2 3 3 2 1 2 2 2 2 2 1 2 2 2 3 3 2 2
+## [39] 1 3 2
 ## 
 ## Within cluster sum of squares by cluster:
-## [1] 56.298513 23.162745  7.505029
-##  (between_SS / total_SS =  71.4 %)
+## [1] 26.65744 25.27128 20.50101
+##  (between_SS / total_SS =  76.1 %)
 ## 
 ## Available components:
 ## 
@@ -234,5 +234,5 @@ kmeans1</code></pre>
 ## [6] &quot;betweenss&quot;    &quot;size&quot;         &quot;iter&quot;         &quot;ifault&quot;</code></pre>
 <pre class="r"><code>kmeansclust&lt;-clust_dat%&gt;%mutate(cluster=as.factor(kmeans1$cluster))
 kmeansclust%&gt;%ggplot(aes(poverty_percent,avg_divorce_rate,color=cluster))+geom_point()</code></pre>
-<p><img src="/nisharamdeep/website2.gitProject1_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
+<p><img src="/Project1_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
 </div>
