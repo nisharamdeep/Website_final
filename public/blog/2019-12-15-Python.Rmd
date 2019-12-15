@@ -1,5 +1,5 @@
 ---
-title: BlogPost1
+title: Python
 author: ''
 date: '2019-12-15'
 slug: blogpost1
