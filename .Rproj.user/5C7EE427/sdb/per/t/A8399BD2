@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "baseurl = \"/\"\nlanguageCode = \"en-US\"\ntitle = \"Nisha Ramdeep\"\n# Enable comments by entering your Disqus shortname\ndisqusShortname = \"\"\n# Enable Google Analytics by entering your tracking code\ngoogleAnalytics = \"\"\ntheme = \"hugo-sustain\"\n\n[permalinks]\n  post = \"/:year/:month/:day/:slug\"\n\n[params]\n  avatar = \"IMG_0539.JPG\"\n  author = \"Nisha Ramdeep\"\n  description = \"Describe your website\"\n\n  # Custom assets can be linked with their paths relative to static/\n  custom_css = []\n  custom_js  = []\n\n[params.social]\n  Github        = \"username\"\n  Email         = \"nisharamdeep@gmail.com\"\n\n## Main Menu\n[[menu.main]]\n  name = \"blog\"\n  weight = 100\n  identifier = \"blog\"\n  url = \"/blog/\"\n[[menu.main]]\n  name = \"projects\"\n  identifier = \"projects\"\n  weight = 200\n  url = \"/projects/\"\n",
+    "created" : 1576373376695.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4009172696",
+    "id" : "A8399BD2",
+    "lastKnownWriteTime" : 1576429937,
+    "last_content_update" : 1576429937831,
+    "path" : "C:/Users/nisha/Desktop/Website/config.toml",
+    "project_path" : "config.toml",
+    "properties" : {
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "text"
+}

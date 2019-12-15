@@ -1,0 +1,15 @@
+"0","my_seq = ""CAGCCCAATCAGGCTCTACTGCCACTAAACTTACGCAGGATATATTTACGCCGACGTACT""
+
+def count_kmers(read):
+
+    k = 3
+    count = {}
+    num = len(read) - 2
+    for i in range(num):
+        threemer = read[i:i+k]
+        if threemer not in count:
+            count[threemer] = 0
+        count[threemer] += 1
+    return count
+count_kmers(my_seq)
+"

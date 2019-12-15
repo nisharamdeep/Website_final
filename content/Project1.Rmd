@@ -1,0 +1,196 @@
+---
+title: "Project 1_final"
+author: "Nisha Ramdeep"
+date: "October 20, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{R}
+library(readxl)
+library(readr)
+library(tidyverse)
+library(ggplot2)
+```
+
+```{R}
+state_divorce <- read_excel("C:/Users/nisha/Downloads/state divorce.xlsx") #loading document
+state_divorce <- state_divorce %>% na.omit %>% select(-c(4:22)) #getting rid of empty cells and selecting 2016 and 2017
+state_divorcerate <- state_divorce[-20,] #make sure every dataset has the same rows
+
+state_medianincome <- read_excel("C:/Users/nisha/Downloads/state median income.xlsx") #loading document
+state_medianincome <- state_medianincome %>% na.omit %>% select(-c(4:12)) #getting rid of empty cells and selecting 2016 and 2017
+state_medianincome1 <- state_medianincome[-c(5,6,11,12,15,19,24,27,32,37),] #make sure every dataset has the same rows
+
+state_poverty <- read_excel("C:/Users/nisha/Downloads/poverty percent.xlsx") #loading document
+state_poverty_rate <- state_poverty[-c(5,6,11,12,15,19,24,27,32,37),] #make sure every dataset has the same rows
+
+state_race <- read_csv("C:/Users/nisha/Downloads/raw_data.csv") #loading document
+state_race <- state_race %>% na.omit #getting rid of empty cells
+state_race_percent <- state_race[-c(5,6,11,12,15,19,24,31,36),] #make sure every dataset has the same rows
+
+#double check all have the same rows
+
+state_medianincome1 %>% anti_join(state_divorcerate, by="State") #nothing
+state_medianincome1 %>% anti_join(state_race_percent, by = "State") #nothing
+state_medianincome1 %>% anti_join(state_poverty_rate, by="State") #nothing
+```
+
+For this project, I wanted to see what factors affect a state's divorce rate. I thought that if a state had a lower median income, then it would have a higher divorce rate. The same relationship was expected for a state's poverty percentage and the divorce rate. Lastly, I wanted to see if a state's race demographic had any effect on any of the other numerical variables. The divorce rate data, median income data, and poverty data were taken from the Census website. The race makeup data was taken from the Kaiser Family Foundation website. Data for poverty was only available for 2016-2017, so the other datasets were restricted to those two years. From the divorce rate dataset, information for California, Colorado, Georgia, Hawaii, Indiana, Louisiana, Minnesota, New Mexico, and Oklahoma was missing. For the the race makeup data, information from Montana was missing. Therefore, these rows were taken out of each of the datasets. NAs were also removed.
+
+```{R}
+#tidying data
+
+state_divorce_rate <- state_divorcerate %>% pivot_longer(cols=c(2:3), names_to="year", values_to="divorce_rate")
+state_divorce_rate <- state_divorce_rate %>% group_by(State) %>% transmute(avg_divorce_rate=mean(divorce_rate)) %>%
+  distinct()
+
+state_median_income <- state_medianincome1 %>% pivot_longer(cols=c(2:3), names_to="year", values_to="median_income")
+state_median_income <- state_median_income %>% group_by(State) %>% transmute(avg_income=mean(median_income))
+
+state_race_percent1 <- state_race_percent %>%
+  pivot_longer(cols=c(2:9), names_to="names", values_to="race_percent") %>%
+  separate(names, into=c("year","race")) %>%
+  pivot_wider(names_from="year", values_from="race_percent") %>%
+  rename("year1"="2016") %>%
+  rename("year2"="2017") %>%
+  mutate(avg_race_percent=((year1+year2)/2)) %>%
+  select(State,race,avg_race_percent) %>%
+  pivot_wider(names_from="race", values_from="avg_race_percent") %>%
+  mutate(Non_white=1-White) %>%
+  select(State, White, Non_white)
+
+final <- state_divorce_rate %>% full_join(state_median_income, by="State")
+final <- final %>% full_join(state_race_percent1, by="State")
+final <- final %>% full_join(state_poverty_rate, by="State")
+final <- final %>% distinct()
+final <- final %>% na.omit %>% as.data.frame
+```
+
+Data was tidied by first pivoting the data so that the mean across the two years (2016 and 2017) could be taken easily, and then, using transmute, the column containing the averages was the only one kept. Finally, all 4 datasets were joined into one.
+
+```{R}
+final %>% select_if(is.numeric) %>% na.omit %>% cor
+```
+
+Correlations for the numeric variables were found. These showed a significant negative correlation for a state's median income from 2016-2017 and its poverty percentage. 
+
+```{R}
+final %>% filter(poverty_percent==max(poverty_percent)|poverty_percent==min(poverty_percent))
+```
+
+The state with the highest percentage of their population in poverty was Mississippi. The state with the lowest was New Hampshire.
+
+```{R}
+final %>% summarize(avg_poverty_rate_national=mean(poverty_percent))
+```
+
+According to this data, the national poverty percentage was around 12.12%.
+
+```{R}
+final %>% summarize(median_divorce_rate_national=median(avg_divorce_rate))
+```
+
+According to this data, the median divorce rate nationally was 3.05. This means that for every 1000 marriages nationally, around 3 end in divorce.
+
+```{R}
+final %>% arrange(avg_income) %>% head(6)
+```
+
+The state with the lowest median income from 2016-2017 was Mississippi. Looking at this data, it seems that Southern states have some of the lowest median incomes in the country.
+
+```{R}
+final %>% select(-State) %>% group_by(region) %>% mutate(mean_divorce_rate_region=mean(avg_divorce_rate)) %>% 
+  arrange(mean_divorce_rate_region) %>%
+  select(region, mean_divorce_rate_region) %>%
+  distinct()
+```
+
+The average divorce rate per region is given here. It looks like the divorce rate in the Midwestern states is the lowest, while divorce rates in the Western states are the highest.
+
+```{R}
+final %>% group_by(region) %>% count()
+final %>% group_by(region) %>% mutate(mean_income_region=mean(avg_income)) %>% mutate(sd_region=sd(avg_income)) %>%
+  arrange(mean_income_region) %>% select(region, mean_income_region, sd_region) %>% distinct()
+                                                                                               
+```
+
+The South has the largest number of states in the dataste, while the West has the least amount. The Northeast has the highest median income, and the South has the lowest median income. The Southern states, while having the lowest median income, have the highest standard deviation.
+
+```{R}
+final %>% ggplot(aes(x=State, y=avg_divorce_rate, color=region))+
+  geom_point(size=2)+
+  theme(axis.text.x = element_text(angle = 50, hjust = 1))
+```
+
+*Divorce rates per state were given. They were grouped by region. There doesn't appear to be any correlation between the region and the average divorce rate. Although, the Western states have some of the highest, and the Midwestern states have some of the lowest.*
+
+```{R}
+final %>% group_by(region) %>% mutate(poverty_rate_region=mean(poverty_percent)) %>%
+  ggplot(aes(region))+
+  geom_bar(aes(y=avg_divorce_rate,fill=poverty_rate_region),stat="summary",fun.y="mean")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))
+```
+
+*This shows that there isn't a relationship between the poverty rate and the divorce rate. The region with the lowest poverty rate (Northeast) does not have the lowest divorce rate.*
+
+```{R}
+final %>% ggplot(aes(x=Non_white, y=poverty_percent,color=region))+
+  geom_point(size=2)
+```
+
+*The states with the highest amount of diversity, while up there, do not necessarily have the highest amount of poverty. Similarly, states with less diversity do not seem to have lower amounts of poverty. The South, again, seems to struggle with higher poverty rates, while the Northeast is generally low.*
+
+```{R}
+final %>% ggplot(aes(x=region,y=avg_income))+
+  geom_boxplot()+
+  geom_jitter(alpha=.5, aes(color=White))
+```
+
+*In this plot, the median incomes of the states in each region were plotted to show their distribution. Layered on top of that was the percentage of White people was layered on top. There does not seem to be a relationship between the percentage of White people in the state and the median income of the region.*
+
+```{R}
+centers <- final %>%
+  mutate(cluster=sample(c("1","2","3"),41,replace=T)) %>%
+  group_by(cluster)%>%
+  summarize(poverty_percent=mean(poverty_percent),avg_divorce_rate=mean(avg_divorce_rate))
+
+ggplot(final)+geom_point(aes(poverty_percent, avg_divorce_rate))+
+  geom_point(data=centers,aes(poverty_percent,avg_divorce_rate,fill=""),color="black",size=4)+
+  scale_fill_manual(name="cluster",values = "black")
+```
+
+```{R}
+suppressWarnings(expr= for(i in 1:1000){
+iter<-final%>%mutate(dist1=sqrt((poverty_percent-centers$poverty_percent[1])^2+(avg_divorce_rate-centers$avg_divorce_rate[1])^2),
+              dist2=sqrt((poverty_percent-centers$poverty_percent[2])^2+(avg_divorce_rate-centers$avg_divorce_rate[2])^2),
+              dist3=sqrt((poverty_percent-centers$poverty_percent[3])^2+(avg_divorce_rate-centers$avg_divorce_rate[3])^2))%>%
+  rowwise()%>%mutate(cluster=as.factor(which.min(c(dist1,dist2,dist3))))
+
+centers<-iter%>%group_by(cluster)%>%summarize(poverty_percent=mean(poverty_percent),
+                                              avg_divorce_rate=mean(avg_divorce_rate))
+})
+ggplot(iter)+geom_point(aes(poverty_percent,avg_divorce_rate,color=cluster))+
+  geom_point(data=centers,aes(poverty_percent,avg_divorce_rate),color="black",size=4)
+```
+
+```{R}
+clust_dat <- final%>%select(poverty_percent, avg_divorce_rate)
+kmeans1<-clust_dat%>%kmeans(3)
+kmeans1
+
+kmeansclust<-clust_dat%>%mutate(cluster=as.factor(kmeans1$cluster))
+kmeansclust%>%ggplot(aes(poverty_percent,avg_divorce_rate,color=cluster))+geom_point()
+```
+
+
+

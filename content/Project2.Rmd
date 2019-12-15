@@ -1,0 +1,231 @@
+---
+title: "Project2"
+author: "Nisha Ramdeep"
+date: "11/26/2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{R}
+library(lmtest)
+library(sandwich)
+library(tidyverse)
+library(carData)
+data <- GSSvocab
+data1 <- na.omit(data)
+head(data1)
+
+class_diag<-function(probs,truth){
+  
+  tab<-table(factor(probs>.5,levels=c("FALSE","TRUE")),truth)
+  acc=sum(diag(tab))/sum(tab)
+  sens=tab[2,2]/colSums(tab)[2]
+  spec=tab[1,1]/colSums(tab)[1]
+  ppv=tab[2,2]/rowSums(tab)[2]
+
+  if(is.numeric(truth)==FALSE & is.logical(truth)==FALSE) truth<-as.numeric(truth)-1
+  
+  #CALCULATE EXACT AUC
+  ord<-order(probs, decreasing=TRUE)
+  probs <- probs[ord]; truth <- truth[ord]
+  
+  TPR=cumsum(truth)/max(1,sum(truth)) 
+  FPR=cumsum(!truth)/max(1,sum(!truth))
+  
+  dup<-c(probs[-1]>=probs[-length(probs)], FALSE)
+  TPR<-c(0,TPR[!dup],1); FPR<-c(0,FPR[!dup],1)
+  
+  n <- length(TPR)
+  auc<- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+
+  data.frame(acc,sens,spec,ppv,auc)
+}
+
+```
+
+```{R}
+man1 <- manova(cbind(vocab, educ)~gender, data=data1)
+summary(man1)
+summary.aov(man1)
+data1 %>% group_by(gender) %>% summarize(mean_vocab=mean(vocab, na.rm=T), mean_educ=mean(educ, na.rm=T))
+
+pairwise.t.test(data1$vocab, data1$gender, p.adj="none")
+pairwise.t.test(data1$educ, data1$gender, p.adj="none")
+
+1 - (0.95^5)
+0.05/5
+
+```
+
+*The assumptions for a MANOVA are random samples, independent observations, multivariate normality of dependent variables, homogeneity of within-group covariance matrices, linear relationships between dependent variables, no extreme univariate or multivariate outliers, and no multicollinearity. These assumptions are difficult to test for and given that they are usually hard to meet, I would assume that they weren't met. Scores on a vocabulary test and education level (years of education) differed significantly across gender Pillai trace = 0.0038, pseudo F(2, 27470) = 51.882, p < 0.001. Univariate analyses of variance were conducted as follow-ups, using the Bonferroni correction value of 0.01, the ANOVAs for vocab and educ were also significant with F(1, 27471) = 9.0731, p < 0.01 and F(1, 27471) = 50.347, p < 0.001 respectively. Post-hoc t-tests were conducted and males and females differed significantly from each other in terms of scores on the vocabulary test and education level even when using the Bonferroni correction value of 0.01. I performed 1 MANOVA, 2 ANOVAs, and 2 t-tests. The probability of type I error is 0.2262. The Bonferroni correction value, as mentioned previously, is 0.01.*
+
+```{R}
+data1 %>% group_by(nativeBorn) %>% summarize(avg=mean(vocab)) %>% summarize(mean_diff=diff(avg))
+
+rand_dist<-vector()
+
+for(i in 1:5000){
+  new <- data.frame(score=sample(data1$vocab), origin=data1$nativeBorn)
+  rand_dist[i] <- mean(new[new$origin == "yes",]$score) - 
+    mean(new[new$origin == "no",]$score)
+}
+
+mean(rand_dist > 0.937)*2
+
+{hist(rand_dist,main="",ylab="", xlim=c(-0.20,0.95)); abline(v = 0.937, col="red")}
+```
+
+*Null hypothesis: the mean vocabulary test scores are the same for those born in the U.S. and those not born in the U.S. Alternative hypothesis: the mean vocabulary test scores are different for those not born in the U.S. and those not born in the U.S. The mean vocabulary scores differ significantly for those born in the U.S. and those not born in the U.S. (p = 0).*
+
+```{R}
+#general linear model
+data1$age_c <- data1$age-mean(data1$age)
+fit1 <- lm(vocab~gender*age_c, data=data1)
+summary(fit1)
+
+#plot
+data1 %>% ggplot(aes(x = age, y = vocab, fill = gender)) +
+  geom_smooth(method="lm", aes(color=gender))
+
+#check assumptions
+resids <- fit1$residuals
+fitvals <- fit1$fitted.values
+ggplot() + geom_point(aes(fitvals, resids)) + geom_hline(yintercept=0, col="red")
+bptest(fit1)
+ggplot() + geom_histogram(aes(resids), bins=20)
+
+#robust standard errors
+coeftest(fit1, vcov = vcovHC(fit1))
+
+#rerun without interaction
+fit2 <- lm(vocab~gender+age_c, data=data1)
+summary(fit2)
+```
+
+*For participants with an average age, males' scores are 0.0690399 points lower than females (t=-2.691, df=27356, p<0.05). For females, with every 1 year increase in age, the vocabulary test scores increased by 0.0073757 points (t=7.759, p<0.05). The effect of age on vocabulary test scores is the same for males and females (t=-1.31, p>0.05). The assumptions were not met. The t-statistics obtained from the the robust standard errors are lower than the ones obtained using the simple linear regression. The p-values for both the gendermale and age_c were significant for both the simple linear regression and the heteroskedastic robust standard errors. The proportion of variance explained (using the adjusted R-squared) is 0.003236. Both gender and age_c continue to be significant even when the model is run without the interaction.*
+
+```{R}
+samp_distn <- replicate(5000, {
+  boot_dat <- data1[sample(nrow(data1),replace=TRUE),]
+  fit<-lm(vocab~gender*age, data=boot_dat)
+  coef(fit)
+})
+
+samp_distn %>% t %>% as.data.frame %>% summarize_all(sd)
+
+samp_distn %>% t %>% as.data.frame %>% gather %>% group_by(key) %>%
+  summarize(lower=quantile(value,.025), upper=quantile(value,.975))
+```
+
+*The standard errors are slightly larger for age and for the interaction but a lot larger for the gendermale coefficient. As the SEs increase, the t-values decrease and the p-values increase.*
+
+```{R}
+#logistic regression
+data2 <- data1 %>% mutate(x=ifelse(nativeBorn == "yes",1,0))
+fit3 <- glm(x~educGroup+vocab, data=data2, family=binomial(link="logit"))
+summary(fit3)
+exp(coef(fit3))
+
+#CV
+prob <- predict(fit3, data=data2, type="response")
+truth <- data2$x
+class_diag(prob,truth)
+
+#confusion matrix
+table(truth = data2$x, predicted = (prob > 0.5)) %>% addmargins
+
+#density plot
+data2$logit <- predict(fit3)
+data2 %>% ggplot(aes(logit, fill=gender)) + geom_density(alpha=0.3) + geom_vline(xintercept= 0, lty=2)
+
+#ROCplot
+library(plotROC)
+data4 <- data2 %>% mutate(prob = predict(fit3, type="response"), prediction = ifelse(prob > 0.5, 1, 0))
+classify <- data4 %>% transmute(prob, prediction, truth = x)
+
+ROCplot <- ggplot(classify) + geom_roc(aes(d = truth, m = prob), n.cuts = 0)
+ROCplot
+calc_auc(ROCplot)
+
+#10-fold CV
+set.seed(1234)
+k = 10
+
+data3 <- data2[sample(nrow(data2)), ] #randomly order rows
+folds <- cut(seq(1:nrow(data2)), breaks = k, labels = F) #create folds
+diags <- NULL
+
+for (i in 1:k) {
+  ## Create training and test sets
+  train <- data3[folds != i, ]
+  test <- data3[folds == i, ]
+  truth <- test$x
+  
+  ## Train model on training set
+  fit <- glm(x ~ educGroup+vocab, data = train, family = "binomial")
+  probs <- predict(fit, newdata = test, type = "response")
+
+  ## Test model on test set (save all k results)
+  diags <- rbind(diags, class_diag(probs, truth))
+}
+
+apply(diags, 2, mean)
+```
+
+*For a person with education <12 years, with every 1 point increase in vocabulary test scores, the odds of being born in the U.S. increase by a factor of 1.310. The odds of being born in the U.S. if you were in school for 12 years are 1.537 times that of the odds that you were born in the U.S. if you only spent <12 years in school. The odds of being born in the U.S. if you were in school for 13-15 years are 0.920 times that of the odds that you were born in the U.S. if you only spent <12 years in school. The odds of being born in the U.S. if you were in school for 16 years are 0.609 times that of the odds that you were born in the U.S. if you only spent <12 years in school. The odds of being born in the U.S. if you were in school for >16 years are 0.393 times that of the odds that you were born in the U.S. if you only spent <12 years in school. The accuracy is 0.914, sensitivity is 1, specificity is 0, and the ppv is 0.914. The AUC is 0.649, which is poor. This means that it is hard to predict whether you were born in the U.S. based off the vocabulary test scores and years spent in school. The accuracy is 0.914, sensitivity is 1, specificity is 0, and ppv is 0.914.*
+
+```{R}
+#lasso regression
+library(glmnet)
+head(data2)
+data7 <- data2 %>% select(-age_c, -age, -educ, -year)
+fit4 <- glm(x~gender+ageGroup+educGroup+vocab, data=data7, family=binomial(link="logit"))
+head(data7)
+
+y <- model.matrix(fit4)
+z <- as.matrix(data2$x)
+
+cv <- cv.glmnet(y, z, family="binomial")
+lasso <- glmnet(y,z, family="binomial", lambda=cv$lambda.1se)
+coef(cv)
+
+#10 fold CV
+data9 <- data7 %>% mutate(s=ifelse(ageGroup=="60+",1,0), t=ifelse(educGroup=="12 yrs",1,0), e=ifelse(educGroup==">16 yrs",1,0))
+data9 <- data9 %>% select(vocab, s, t, e, x)
+set.seed(1234)
+k = 10
+
+data8 <- data9[sample(nrow(data9)),]
+folds2 <- cut(seq(1:nrow(data9)), breaks=k, labels=F)
+
+diags2 <- NULL
+for (i in 1:k) {
+  ## Create training and test sets
+  train <- data8[folds != i, ]
+  test <- data8[folds == i, ]
+  truth <- test$x
+  
+  ## Train model on training set
+  fit <- glm(x~. , data = train, family = "binomial")
+  probs <- predict(fit, newdata = test, type = "response")
+
+  ## Test model on test set (save all k results)
+  diags <- rbind(diags, class_diag(probs, truth))
+}
+
+apply(diags, 2, mean)
+
+```
+
+*The variables retained from the LASSO are ageGroup60+, educGroup12 yrs, educGroup>16 yrs, and vocab. The accuracy is 0.914, sensitivity is 1, specificity is 0, and ppv is 0.914. These values are the same when compared to the 10-fold CV done in part 5. The AUC is 0.651, which is slightly greater than the one from part 5. This shows that using the most significant predictors does improve the model.*
