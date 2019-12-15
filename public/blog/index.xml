@@ -22,5 +22,16 @@ For example:
 import restring = &amp;quot;We have to extract these numbers 12, 47, 48 The integers numbers are also interesting: 189 2036 314\&amp;#39;,\&amp;#39; is a separator, so please extract these numbers 125,789,1450 and also these 564,90456 We like to offer you 7890$ per month in order to complete this task.</description>
     </item>
     
+    <item>
+      <title>BlogPost1</title>
+      <link>/blog/blogpost1/</link>
+      <pubDate>Sun, 15 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/blog/blogpost1/</guid>
+      <description>Using PythonIn class, we have been using Python to do a couple of interesting things. These include using regular expressions (regex) to find matches of certain characters in strings, almost like ctrl+f.
+For example:
+import restring = &amp;quot;We have to extract these numbers 12, 47, 48 The integers numbers are also interesting: 189 2036 314\&amp;#39;,\&amp;#39; is a separator, so please extract these numbers 125,789,1450 and also these 564,90456 We like to offer you 7890$ per month in order to complete this task.</description>
+    </item>
+    
   </channel>
 </rss>
