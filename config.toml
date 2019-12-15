@@ -20,10 +20,15 @@ theme = "hugo-sustain"
   custom_js  = []
 
 [params.social]
-  Github        = "username"
+  Github        = "nisharamdeep"
   Email         = "nisharamdeep@gmail.com"
 
 ## Main Menu
+[[menu.main]]
+  name = "about"
+  weight = 100
+  identifier = "about"
+  url = "/about/"
 [[menu.main]]
   name = "blog"
   weight = 100
